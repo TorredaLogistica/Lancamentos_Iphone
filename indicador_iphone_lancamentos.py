@@ -77,30 +77,27 @@ def groupbar(df,x,y,series,order_by_total=True,percent=False,money=False,avoid_o
             tr.offsetgroup=str(idx)
         fig.update_layout(bargap=.34,bargroupgap=.16)
     if avoid_overlap:
-        # Todos os valores ficam horizontais e acima das barras.
-        # As duas séries usam deslocamentos verticais diferentes para não se sobrepor.
-        for idx,tr in enumerate(fig.data):
+        # Mantém cada rótulo preso à própria barra, sem anotações no centro da categoria.
+        # Valores monetários usam duas linhas para reduzir a largura do texto.
+        for tr in fig.data:
             tr.textposition='outside'
             tr.textangle=0
-            tr.textfont=dict(size=10,color='#222222')
-            tr.texttemplate='%{text}'
             tr.cliponaxis=False
             tr.constraintext='none'
-            # Série 1 mais próxima; série 2 um pouco mais alta.
-            tr.textfont=dict(size=10,color='#222222')
-            tr.offsetgroup=str(idx)
-        fig.update_layout(bargap=.44,bargroupgap=.22,margin=dict(l=55,r=55,t=145,b=130),uniformtext_minsize=9,uniformtext_mode='show')
-        # Reserva 24% de espaço acima da maior barra para os textos externos.
-        ymax=float(pd.to_numeric(plot[y],errors='coerce').max() or 0)
-        if ymax > 0:
-            fig.update_yaxes(range=[0,ymax*1.24])
-        # Anotações acima das barras com níveis alternados, substituindo text dos traces.
-        for idx,tr in enumerate(fig.data):
-            xs=list(tr.x); ys=list(tr.y); texts=list(tr.text)
-            tr.text=None
-            for xval,yval,txt in zip(xs,ys,texts):
-                lift=1.035 + (0.075 if idx % 2 else 0)
-                fig.add_annotation(x=xval,y=float(yval)*lift,text=str(txt),showarrow=False,xanchor='center',yanchor='bottom',font=dict(size=10,color='#222222'),bgcolor='rgba(255,255,255,.78)',borderpad=1)
+            tr.textfont=dict(size=9 if money else 10,color='#222222')
+            if money:
+                tr.text=[str(valor).replace(' MM','<br>MM') for valor in tr.text]
+                tr.texttemplate='%{text}'
+        fig.update_layout(
+            bargap=.38,
+            bargroupgap=.28,
+            margin=dict(l=50,r=50,t=155,b=130),
+            uniformtext_minsize=8,
+            uniformtext_mode='show'
+        )
+        ymax=pd.to_numeric(plot[y],errors='coerce').max()
+        if pd.notna(ymax) and ymax > 0:
+            fig.update_yaxes(range=[0,float(ymax)*1.34])
     if percent and not avoid_overlap: fig.update_yaxes(range=[0,118])
     fig.update_layout(margin=dict(l=55 if avoid_overlap else 45,r=55 if avoid_overlap else 45,t=145 if avoid_overlap else 125,b=130 if avoid_overlap else 125),legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)))
     return style(fig,520 if avoid_overlap else 455,True,plot['_eixo'].nunique())
