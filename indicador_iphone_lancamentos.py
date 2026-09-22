@@ -189,6 +189,55 @@ def receipts_four_bars(df,x,y,launch_col,status_col=None,money=False):
     if pd.notna(ymax) and ymax>0:
         fig.update_yaxes(range=[0,float(ymax)*1.30])
     return style(fig,520,True,plot['_eixo'].nunique())
+def status_entregas_chart(df,series=None):
+    """Status das entregas com descrições completas, quebradas em várias linhas."""
+    plot=df.copy()
+    def quebrar(texto,limite=18):
+        palavras=str(texto).split()
+        linhas=[]; atual=''
+        for palavra in palavras:
+            candidato=(atual+' '+palavra).strip()
+            if atual and len(candidato)>limite:
+                linhas.append(atual); atual=palavra
+            else:
+                atual=candidato
+        if atual: linhas.append(atual)
+        return '<br>'.join(linhas)
+    plot['_descricao_completa']=plot['Descrição'].astype(str)
+    plot['_descricao_quebrada']=plot['_descricao_completa'].map(quebrar)
+    if series:
+        order=plot.groupby('_descricao_completa')['Pedidos'].sum().sort_values(ascending=False).index.tolist()
+        plot['_descricao_quebrada']=pd.Categorical(
+            plot['_descricao_quebrada'],
+            categories=[quebrar(v) for v in order],
+            ordered=True
+        )
+        fig=px.bar(
+            plot,x='_descricao_quebrada',y='Pedidos',color=series,barmode='group',text='Pedidos',
+            color_discrete_map={'Lançamento iPhone 18':RED,'Lançamento iPhone 17':BLUE17},
+            category_orders={'_descricao_quebrada':[quebrar(v) for v in order],series:['Lançamento iPhone 18','Lançamento iPhone 17']},
+            custom_data=['_descricao_completa']
+        )
+        fig.update_layout(showlegend=True,legend=dict(orientation='h',y=1.18,x=0,title=None))
+    else:
+        plot=plot.sort_values('Pedidos',ascending=False)
+        fig=px.bar(
+            plot,x='_descricao_quebrada',y='Pedidos',text='Pedidos',
+            color_discrete_sequence=[WINE],
+            category_orders={'_descricao_quebrada':plot['_descricao_quebrada'].tolist()},
+            custom_data=['_descricao_completa']
+        )
+        fig.update_layout(showlegend=False)
+    fig.update_traces(textposition='outside',cliponaxis=False,hoverinfo='skip',hovertemplate=None)
+    fig.update_xaxes(
+        type='category',title=None,showgrid=False,automargin=True,
+        tickangle=0,tickfont=dict(size=11),
+        categoryorder='array',
+        categoryarray=plot['_descricao_quebrada'].drop_duplicates().tolist()
+    )
+    fig.update_yaxes(title=None,visible=False,rangemode='tozero')
+    fig.update_layout(height=520,margin=dict(l=30,r=30,t=90,b=185),uniformtext_minsize=9,uniformtext_mode='show')
+    return fig
 @st.cache_data(show_spinner=False)
 def load_book(path, launch):
     b=pd.ExcelFile(path,engine='openpyxl'); out={s:pd.read_excel(b,sheet_name=s) for s in b.sheet_names}
@@ -342,7 +391,7 @@ with tabs[3]:
     g=d.groupby((['Região',series] if series else ['Região']))['Quantidade da ordem'].sum().reset_index(name='Aparelhos')
     with a:chart('Qtde de Aparelhos por UF',groupbar(g,'Região','Aparelhos',series) if series else bar(g,'Região','Aparelhos'))
     h=d.groupby((['Descrição',series] if series else ['Descrição']))['Nº do pedido'].nunique().reset_index(name='Pedidos')
-    with b:chart('Status das Entregas',groupbar(h,'Descrição','Pedidos',series) if series else bar(h,'Descrição','Pedidos',WINE))
+    with b:chart('Status das Entregas',status_entregas_chart(h,series))
     d['_data']=pd.to_datetime(d['Data do documento'],errors='coerce').dt.strftime('%d/%m');q=d.groupby((['_data',series] if series else ['_data']))['Quantidade da ordem'].sum().reset_index(name='Aparelhos')
     # SLA do E-Commerce: coluna R da guia Base Ecommerce (Nº nota fiscal).
     sla_col='Nº nota fiscal' if 'Nº nota fiscal' in d.columns else d.columns[17]
