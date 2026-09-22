@@ -22,7 +22,38 @@ st.markdown('''<style>
 .stTabs div[data-baseweb="tab-list"] [data-baseweb="tab-highlight"],.stTabs div[data-baseweb="tab-list"] [data-baseweb="tab-border"]{display:none!important}
 div[role="radiogroup"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:2px 0 10px}div[role="radiogroup"] label{border:1px solid #d3d3d3;border-radius:10px;padding:12px 10px;background:#fff;justify-content:center}div[role="radiogroup"] label:has(input:checked){border-color:#E30613;background:#FFF1F2;box-shadow:0 2px 7px #E3061322}div[role="radiogroup"] label p{font-weight:750;text-align:center}@media(max-width:700px){div[role="radiogroup"]{grid-template-columns:1fr}}
 @media(max-width:900px){.stTabs div[data-baseweb="tab-list"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.hero{grid-template-columns:90px 1fr 70px}.hero img{max-width:85px;max-height:48px}}
-@media(max-width:650px){.block-container{padding:2.6rem .45rem 1rem}.hero{grid-template-columns:55px 1fr 45px;gap:5px}.hero img{max-width:52px;max-height:38px}.hero h1{font-size:19px}.kpi{min-height:80px}.kpi-num{font-size:26px}.kpi-lbl{font-size:12px}.stTabs div[data-baseweb="tab-list"]{grid-template-columns:1fr!important;gap:7px!important}.stTabs div[data-baseweb="tab-list"]>button{min-height:50px!important;padding:10px 8px!important}.stTabs div[data-baseweb="tab-list"]>button p,.stTabs div[data-baseweb="tab-list"]>button span{font-size:12px!important}}
+@media(max-width:900px){
+  /* Tablet: gráficos em uma coluna para ampliar a área útil. */
+  [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"]){display:flex!important;flex-direction:column!important;gap:18px!important}
+  [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"])>[data-testid="column"]{width:100%!important;flex:1 1 100%!important;min-width:100%!important}
+}
+@media(max-width:650px){
+  .block-container{padding:4.1rem .45rem 1rem!important}
+  .hero{grid-template-columns:55px 1fr 45px;gap:5px}.hero img{max-width:52px;max-height:38px}.hero h1{font-size:19px}
+  .kpi{min-height:80px}.kpi-num{font-size:26px}.kpi-lbl{font-size:12px}
+  .stTabs div[data-baseweb="tab-list"]{grid-template-columns:1fr!important;gap:7px!important}
+  .stTabs div[data-baseweb="tab-list"]>button{min-height:50px!important;padding:10px 8px!important}
+  .stTabs div[data-baseweb="tab-list"]>button p,.stTabs div[data-baseweb="tab-list"]>button span{font-size:12px!important}
+  /* Mobile: somente os valores das barras ficam na vertical. */
+  [data-testid="stPlotlyChart"] g.textpoint text,
+  [data-testid="stPlotlyChart"] g.bartext text,
+  [data-testid="stPlotlyChart"] .textpoint text{
+      transform-box:fill-box!important;
+      transform-origin:center!important;
+      transform:rotate(-90deg)!important;
+      font-size:10px!important;
+  }
+  /* Mais área para que os valores verticais não sejam cortados. */
+  [data-testid="stPlotlyChart"]{overflow:visible!important;min-height:500px!important}
+  [data-testid="stPlotlyChart"] .js-plotly-plot,
+  [data-testid="stPlotlyChart"] .plot-container,
+  [data-testid="stPlotlyChart"] .svg-container{overflow:visible!important}
+}
+@media(max-width:420px){
+  [data-testid="stPlotlyChart"] g.textpoint text,
+  [data-testid="stPlotlyChart"] g.bartext text,
+  [data-testid="stPlotlyChart"] .textpoint text{font-size:9px!important}
+}
 </style>''', unsafe_allow_html=True)
 
 def norm(s): return unicodedata.normalize('NFKD',str(s)).encode('ascii','ignore').decode().lower().strip()
