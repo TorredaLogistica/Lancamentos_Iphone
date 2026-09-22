@@ -231,12 +231,12 @@ def status_entregas_chart(df,series=None):
     fig.update_traces(textposition='outside',cliponaxis=False,hoverinfo='skip',hovertemplate=None)
     fig.update_xaxes(
         type='category',title=None,showgrid=False,automargin=True,
-        tickangle=0,tickfont=dict(size=11),
+        tickangle=-35,tickfont=dict(size=11),
         categoryorder='array',
         categoryarray=plot['_descricao_quebrada'].drop_duplicates().tolist()
     )
     fig.update_yaxes(title=None,visible=False,rangemode='tozero')
-    fig.update_layout(height=520,margin=dict(l=30,r=30,t=90,b=185),uniformtext_minsize=9,uniformtext_mode='show')
+    fig.update_layout(height=560,margin=dict(l=35,r=35,t=90,b=235),uniformtext_minsize=9,uniformtext_mode='show')
     return fig
 @st.cache_data(show_spinner=False)
 def load_book(path, launch):
