@@ -181,7 +181,7 @@ with tabs[2]:
             ('Qtde de NFs',lambda x:x['Documento SD'].nunique()),
             ('Qtde de Aparelhos',lambda x:pd.to_numeric(x['Quantidade da ordem'],errors='coerce').sum()),
             ('Qtde de PDVs',lambda x:x['Cód.Client'].nunique()),
-            ('Qtde de Clientes',lambda x:x['Cliente'].nunique())
+            ('Qtde de Cidades',lambda x:x.groupby('Segmento')['GrpClients'].nunique().sum())
         ]
         for label,func in defs:
             vals=[func(d[d['Lançamento']==launch]) for launch in launches]
@@ -206,7 +206,7 @@ with tabs[2]:
         st.caption('Valores apresentados na ordem: iPhone 18 | iPhone 17')
     else:
         ss=d.groupby('Segmento').agg(NFs=('Documento SD','nunique'),Aparelhos=('Quantidade da ordem','sum'),PDVs=('Cód.Client','nunique'),Cidades=('GrpClients','nunique'))
-        cards([('Qtde de NFs',fmt(d['Documento SD'].nunique())),('Qtde de Aparelhos',fmt(d['Quantidade da ordem'].sum())),('Qtde de PDVs',fmt(d['Cód.Client'].nunique())),('Qtde de Clientes',fmt(d['Cliente'].nunique()))])
+        cards([('Qtde de NFs',fmt(d['Documento SD'].nunique())),('Qtde de Aparelhos',fmt(d['Quantidade da ordem'].sum())),('Qtde de PDVs',fmt(d['Cód.Client'].nunique())),('Qtde de Cidades',fmt(d.groupby('Segmento')['GrpClients'].nunique().sum()))])
         for seg,short in [('Agente Autorizado','AA'),('Loja Propria','LP')]: cards([(f'Qtde de NFs - {short}',fmt(ss.loc[seg,'NFs'])),(f'Aparelhos {short}',fmt(ss.loc[seg,'Aparelhos'])),(f'Qtde de {short}',fmt(ss.loc[seg,'PDVs'])),(f'Qtde de Cidades - {short}',fmt(ss.loc[seg,'Cidades']))])
     series='Lançamento' if selected.startswith('Comparativo') else 'Segmento'
     groups=[('Qtde de Aparelhos por CD','Região','Quantidade da ordem'),('Qtde de PDVs','Região','Cód.Client')]
