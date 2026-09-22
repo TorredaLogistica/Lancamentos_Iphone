@@ -1,3 +1,0 @@
-comando para rodar no CMD
-
-python -m streamlit run indicador_iphone_lancamentos.py
