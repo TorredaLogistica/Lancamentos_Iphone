@@ -174,7 +174,36 @@ with tabs[1]:
 with tabs[2]:
     d=get('Concluidas');hero(title_text('Faturamento AAs e LPs'))
     if selected.startswith('Comparativo'):
-        comp_kpis(d,[('Qtde de NFs',lambda x:x['Documento SD'].nunique()),('Qtde de Aparelhos',lambda x:pd.to_numeric(x['Quantidade da ordem'],errors='coerce').sum()),('Qtde de PDVs',lambda x:x['Cód.Client'].nunique()),('Qtde de Clientes',lambda x:x['Cliente'].nunique())])
+        # Mesma estrutura das visões individuais: 4 gerais + 4 AA + 4 LP.
+        launches=['Lançamento iPhone 18','Lançamento iPhone 17']
+        geral=[]
+        defs=[
+            ('Qtde de NFs',lambda x:x['Documento SD'].nunique()),
+            ('Qtde de Aparelhos',lambda x:pd.to_numeric(x['Quantidade da ordem'],errors='coerce').sum()),
+            ('Qtde de PDVs',lambda x:x['Cód.Client'].nunique()),
+            ('Qtde de Clientes',lambda x:x['Cliente'].nunique())
+        ]
+        for label,func in defs:
+            vals=[func(d[d['Lançamento']==launch]) for launch in launches]
+            geral.append((label,f'{fmt(vals[0])} | {fmt(vals[1])}'))
+        cards(geral)
+        for segmento,short in [('Agente Autorizado','AA'),('Loja Propria','LP')]:
+            resumo=[]
+            for launch in launches:
+                base=d[(d['Lançamento']==launch) & (d['Segmento']==segmento)]
+                resumo.append({
+                    'NFs':base['Documento SD'].nunique(),
+                    'Aparelhos':pd.to_numeric(base['Quantidade da ordem'],errors='coerce').sum(),
+                    'PDVs':base['Cód.Client'].nunique(),
+                    'Cidades':base['GrpClients'].nunique()
+                })
+            cards([
+                (f'Qtde de NFs - {short}',f"{fmt(resumo[0]['NFs'])} | {fmt(resumo[1]['NFs'])}"),
+                (f'Aparelhos {short}',f"{fmt(resumo[0]['Aparelhos'])} | {fmt(resumo[1]['Aparelhos'])}"),
+                (f'Qtde de {short}',f"{fmt(resumo[0]['PDVs'])} | {fmt(resumo[1]['PDVs'])}"),
+                (f'Qtde de Cidades - {short}',f"{fmt(resumo[0]['Cidades'])} | {fmt(resumo[1]['Cidades'])}")
+            ])
+        st.caption('Valores apresentados na ordem: iPhone 18 | iPhone 17')
     else:
         ss=d.groupby('Segmento').agg(NFs=('Documento SD','nunique'),Aparelhos=('Quantidade da ordem','sum'),PDVs=('Cód.Client','nunique'),Cidades=('GrpClients','nunique'))
         cards([('Qtde de NFs',fmt(d['Documento SD'].nunique())),('Qtde de Aparelhos',fmt(d['Quantidade da ordem'].sum())),('Qtde de PDVs',fmt(d['Cód.Client'].nunique())),('Qtde de Clientes',fmt(d['Cliente'].nunique()))])
