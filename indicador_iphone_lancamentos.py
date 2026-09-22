@@ -101,6 +101,52 @@ def groupbar(df,x,y,series,order_by_total=True,percent=False,money=False,avoid_o
     if percent and not avoid_overlap: fig.update_yaxes(range=[0,118])
     fig.update_layout(margin=dict(l=55 if avoid_overlap else 45,r=55 if avoid_overlap else 45,t=145 if avoid_overlap else 125,b=130 if avoid_overlap else 125),legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)))
     return style(fig,520 if avoid_overlap else 455,True,plot['_eixo'].nunique())
+def receipts_four_bars(df,x,y,launch_col,status_col=None,money=False):
+    """Duas barras por lançamento; com status, até quatro barras por CD."""
+    plot=df.copy()
+    launches=['Lançamento iPhone 18','Lançamento iPhone 17']
+    colors={
+        'Lançamento iPhone 18 - Prazo OK':'#E30613',
+        'Lançamento iPhone 18 - Atrasado':'#8F0010',
+        'Lançamento iPhone 17 - Prazo OK':'#626A73',
+        'Lançamento iPhone 17 - Atrasado':'#AAB0B6',
+        'Lançamento iPhone 18':'#E30613',
+        'Lançamento iPhone 17':'#626A73'
+    }
+    if status_col and status_col in plot.columns:
+        plot['_serie']=plot[launch_col].astype(str)+' - '+plot[status_col].astype(str)
+        series_order=[
+            'Lançamento iPhone 18 - Prazo OK','Lançamento iPhone 18 - Atrasado',
+            'Lançamento iPhone 17 - Prazo OK','Lançamento iPhone 17 - Atrasado'
+        ]
+    else:
+        plot['_serie']=plot[launch_col].astype(str)
+        series_order=launches
+    order=plot.groupby(x)[y].sum().sort_values(ascending=False).index.astype(str).tolist()
+    plot['_eixo']=plot[x].map(_short)
+    plot['_texto']=plot[y].map(lambda v:('R$ '+fmt(float(v)/1_000_000,2)+' MM') if money else fmt(v))
+    plot['_serie']=pd.Categorical(plot['_serie'],categories=series_order,ordered=True)
+    plot=plot.sort_values(['_serie',x])
+    fig=px.bar(
+        plot,x='_eixo',y=y,color='_serie',barmode='group',text='_texto',
+        color_discrete_map=colors,
+        category_orders={'_eixo':[_short(v) for v in order],'_serie':series_order},
+        custom_data=[x,'_texto']
+    )
+    fig.update_traces(
+        textposition='outside',textangle=0,cliponaxis=False,constraintext='none',
+        textfont=dict(size=9 if money else 10,color='#222222'),
+        hovertemplate='<b>%{customdata[0]}</b><br>%{fullData.name}: %{customdata[1]}<extra></extra>'
+    )
+    fig.update_layout(
+        bargap=.30,bargroupgap=.16,margin=dict(l=45,r=45,t=145,b=130),
+        legend=dict(orientation='h',y=1.22,x=0,traceorder='normal',font=dict(size=12),title=None),
+        uniformtext_minsize=8,uniformtext_mode='show'
+    )
+    ymax=pd.to_numeric(plot[y],errors='coerce').max()
+    if pd.notna(ymax) and ymax>0:
+        fig.update_yaxes(range=[0,float(ymax)*1.30])
+    return style(fig,520,True,plot['_eixo'].nunique())
 @st.cache_data(show_spinner=False)
 def load_book(path, launch):
     b=pd.ExcelFile(path,engine='openpyxl'); out={s:pd.read_excel(b,sheet_name=s) for s in b.sheet_names}
@@ -170,8 +216,8 @@ with tabs[0]:
     with a:chart('Qtde de Aparelhos',groupbar(g,'CD_Corrigido','Aparelhos','Lançamento') if comp else bar(g,'CD_Corrigido','Aparelhos'))
     with b:chart('Qtde de NFs',groupbar(n,'CD_Corrigido','NFs','Lançamento') if comp else bar(n,'CD_Corrigido','NFs'))
     a,b=st.columns(2)
-    with a:chart('Valor Total das NFs',groupbar(v,'CD_Corrigido','Valor','Lançamento',money=True,avoid_overlap=True) if comp else bar(v,'CD_Corrigido','Valor',money=True))
-    with b:chart('Execução dos Horários dos Agendamentos',groupbar(stat,'CD_Corrigido','Aparelhos','Serie',avoid_overlap=comp))
+    with a:chart('Valor Total das NFs',receipts_four_bars(v,'CD_Corrigido','Valor','Lançamento',money=True) if comp else bar(v,'CD_Corrigido','Valor',money=True))
+    with b:chart('Execução dos Horários dos Agendamentos',receipts_four_bars(stat,'CD_Corrigido','Aparelhos','Lançamento','StatusPrazo') if comp else groupbar(stat,'CD_Corrigido','Aparelhos','Serie'))
 with tabs[1]:
     d=get('Consulta Massiva');hero(title_text('Faturamento e Expedição'))
     funcs=[('Qtde de NFs',lambda x:x['N° NF'].notna().sum()),('SLA D+0',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(0).sum()),('SLA D+1',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(1).sum()),('SLA D+2',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(2).sum()),('SLA D+3',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(3).sum()),('Não finalizado',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').isna().sum())]
