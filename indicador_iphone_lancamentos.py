@@ -77,20 +77,33 @@ def groupbar(df,x,y,series,order_by_total=True,percent=False,money=False,avoid_o
             tr.offsetgroup=str(idx)
         fig.update_layout(bargap=.34,bargroupgap=.16)
     if avoid_overlap:
-        # Mais espaço entre categorias e rótulos das duas séries em alturas alternadas.
+        # Todos os valores ficam horizontais e acima das barras.
+        # As duas séries usam deslocamentos verticais diferentes para não se sobrepor.
         for idx,tr in enumerate(fig.data):
             tr.textposition='outside'
-            tr.textfont=dict(size=10)
+            tr.textangle=0
+            tr.textfont=dict(size=10,color='#222222')
             tr.texttemplate='%{text}'
             tr.cliponaxis=False
-            if idx % 2 == 1:
-                tr.textposition='inside'
-                tr.insidetextanchor='end'
-                tr.textfont=dict(size=10,color='white')
-        fig.update_layout(bargap=.40,bargroupgap=.18,margin=dict(l=45,r=45,t=125,b=125))
-    if percent: fig.update_yaxes(range=[0,118])
-    fig.update_layout(margin=dict(l=45,r=45,t=125,b=125),legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)))
-    return style(fig,485 if avoid_overlap else 455,True,plot['_eixo'].nunique())
+            tr.constraintext='none'
+            # Série 1 mais próxima; série 2 um pouco mais alta.
+            tr.textfont=dict(size=10,color='#222222')
+            tr.offsetgroup=str(idx)
+        fig.update_layout(bargap=.44,bargroupgap=.22,margin=dict(l=55,r=55,t=145,b=130),uniformtext_minsize=9,uniformtext_mode='show')
+        # Reserva 24% de espaço acima da maior barra para os textos externos.
+        ymax=float(pd.to_numeric(plot[y],errors='coerce').max() or 0)
+        if ymax > 0:
+            fig.update_yaxes(range=[0,ymax*1.24])
+        # Anotações acima das barras com níveis alternados, substituindo text dos traces.
+        for idx,tr in enumerate(fig.data):
+            xs=list(tr.x); ys=list(tr.y); texts=list(tr.text)
+            tr.text=None
+            for xval,yval,txt in zip(xs,ys,texts):
+                lift=1.035 + (0.075 if idx % 2 else 0)
+                fig.add_annotation(x=xval,y=float(yval)*lift,text=str(txt),showarrow=False,xanchor='center',yanchor='bottom',font=dict(size=10,color='#222222'),bgcolor='rgba(255,255,255,.78)',borderpad=1)
+    if percent and not avoid_overlap: fig.update_yaxes(range=[0,118])
+    fig.update_layout(margin=dict(l=55 if avoid_overlap else 45,r=55 if avoid_overlap else 45,t=145 if avoid_overlap else 125,b=130 if avoid_overlap else 125),legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)))
+    return style(fig,520 if avoid_overlap else 455,True,plot['_eixo'].nunique())
 @st.cache_data(show_spinner=False)
 def load_book(path, launch):
     b=pd.ExcelFile(path,engine='openpyxl'); out={s:pd.read_excel(b,sheet_name=s) for s in b.sheet_names}
