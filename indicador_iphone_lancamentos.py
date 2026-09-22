@@ -52,8 +52,26 @@ def style(fig,h=390,legend=False,ncats=8):
     return fig
 _chart_ids=count(1)
 def chart(title,fig):
+    # Todos os gráficos permanecem estáticos em desktop, tablet e mobile.
+    fig.update_layout(hovermode=False,dragmode=False,clickmode='none')
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
+    fig.update_traces(hoverinfo='skip',hovertemplate=None)
     st.markdown(f'<div class="section-title">{title}</div>',unsafe_allow_html=True)
-    st.plotly_chart(fig,use_container_width=True,config={'displayModeBar':False,'responsive':True},key=f'plotly_{next(_chart_ids)}')
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            'staticPlot':True,
+            'displayModeBar':False,
+            'responsive':True,
+            'scrollZoom':False,
+            'doubleClick':False,
+            'showTips':False,
+            'editable':False
+        },
+        key=f'plotly_{next(_chart_ids)}'
+    )
 def bar(df,x,y,color=RED,text=None,percent=False,money=False):
     plot=df.sort_values(y,ascending=False).copy(); order=plot[x].astype(str).tolist()
     plot['_eixo']=plot[x].map(_short)
