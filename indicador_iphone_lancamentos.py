@@ -348,11 +348,15 @@ with tabs[3]:
     sla_col='Nº nota fiscal' if 'Nº nota fiscal' in d.columns else d.columns[17]
     d['_sla']=pd.to_numeric(d[sla_col],errors='coerce')
     d_sla=d.dropna(subset=['_sla']).copy()
-    d_sla['_sla']=d_sla['_sla'].astype(int).astype(str)
+    d_sla['_sla']=d_sla['_sla'].astype(int)
     sla_keys=['_sla',series] if series else ['_sla']
     sla=d_sla.groupby(sla_keys)['Nº do pedido'].nunique().reset_index(name='Pedidos')
-    sla['_ordem']=pd.to_numeric(sla['_sla'],errors='coerce')
-    sla=sla.sort_values('_ordem').drop(columns='_ordem')
+    sla=sla.sort_values('_sla')
+    sla['_sla']=sla['_sla'].astype(str)
+    sla_order=sorted(sla['_sla'].dropna().unique().tolist(),key=lambda valor:int(valor))
     a,b=st.columns(2)
     with a:chart('Qtde de Aparelhos por Data do Pedido',groupbar(q,'_data','Aparelhos',series,False) if series else bar(q,'_data','Aparelhos'))
-    with b:chart('SLA',groupbar(sla,'_sla','Pedidos',series,False) if series else bar(sla,'_sla','Pedidos'))
+    with b:
+        fig_sla=groupbar(sla,'_sla','Pedidos',series,False) if series else bar(sla,'_sla','Pedidos')
+        fig_sla.update_xaxes(type='category',categoryorder='array',categoryarray=sla_order,tickmode='array',tickvals=sla_order,ticktext=sla_order,tickangle=0)
+        chart('SLA (Separação - Faturamento - Expedição)',fig_sla)
