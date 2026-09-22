@@ -3,11 +3,27 @@ import base64, io, mimetypes, unicodedata
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 from itertools import count
 
 st.set_page_config(page_title='Lançamentos iPhone', page_icon='📱', layout='wide', initial_sidebar_state='expanded')
 RED='#E30613'; WINE='#960018'; GRAY='#5B5B5B'; LIGHT='#FFF4F5'; GRID='#ECECEC'; BLUE17='#626A73'
 ROOT=Path(__file__).resolve().parent
+# Define uma classe no documento principal conforme a largura real do aparelho.
+components.html("""
+<script>
+(function(){
+  const root = window.parent.document.documentElement;
+  function syncViewport(){
+    const mobile = window.parent.innerWidth <= 650;
+    root.classList.toggle('iphone-mobile', mobile);
+  }
+  syncViewport();
+  window.parent.addEventListener('resize', syncViewport, {passive:true});
+  window.parent.addEventListener('orientationchange', syncViewport, {passive:true});
+})();
+</script>
+""", height=0, width=0)
 
 st.markdown('''<style>
 .block-container{padding:4.8rem 1rem 2rem;max-width:1650px}#MainMenu,footer{visibility:hidden}header[data-testid="stHeader"]{visibility:visible!important;height:3.5rem!important;background:rgba(255,255,255,.96)!important;border-bottom:1px solid #EEEEEE!important}header[data-testid="stHeader"] [data-testid="stToolbar"]{visibility:visible!important;display:flex!important;height:auto!important}header[data-testid="stHeader"] button,header[data-testid="stHeader"] a{visibility:visible!important}
@@ -23,7 +39,6 @@ st.markdown('''<style>
 div[role="radiogroup"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:2px 0 10px}div[role="radiogroup"] label{border:1px solid #d3d3d3;border-radius:10px;padding:12px 10px;background:#fff;justify-content:center}div[role="radiogroup"] label:has(input:checked){border-color:#E30613;background:#FFF1F2;box-shadow:0 2px 7px #E3061322}div[role="radiogroup"] label p{font-weight:750;text-align:center}@media(max-width:700px){div[role="radiogroup"]{grid-template-columns:1fr}}
 @media(max-width:900px){.stTabs div[data-baseweb="tab-list"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.hero{grid-template-columns:90px 1fr 70px}.hero img{max-width:85px;max-height:48px}}
 @media(max-width:900px){
-  /* Tablet: um gráfico por linha para ampliar a área útil. */
   [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"]){display:flex!important;flex-direction:column!important;gap:18px!important}
   [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"])>[data-testid="column"]{width:100%!important;flex:1 1 100%!important;min-width:100%!important}
 }
@@ -34,19 +49,18 @@ div[role="radiogroup"]{display:grid!important;grid-template-columns:repeat(3,min
   .stTabs div[data-baseweb="tab-list"]{grid-template-columns:1fr!important;gap:7px!important}
   .stTabs div[data-baseweb="tab-list"]>button{min-height:50px!important;padding:10px 8px!important}
   .stTabs div[data-baseweb="tab-list"]>button p,.stTabs div[data-baseweb="tab-list"]>button span{font-size:12px!important}
-  /* Não altera a transformação SVG do Plotly. */
-  [data-testid="stPlotlyChart"]{width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;padding-bottom:8px!important;-webkit-overflow-scrolling:touch!important}
-  [data-testid="stPlotlyChart"] .js-plotly-plot,
-  [data-testid="stPlotlyChart"] .plot-container,
-  [data-testid="stPlotlyChart"] .svg-container{min-width:760px!important;overflow:visible!important}
-  [data-testid="stPlotlyChart"] .barlayer text{font-size:9px!important}
+  [data-testid="stPlotlyChart"]{width:100%!important;overflow:visible!important}
+  [data-testid="stPlotlyChart"] .barlayer text{font-size:10px!important}
 }
-@media(max-width:420px){
-  [data-testid="stPlotlyChart"] .js-plotly-plot,
-  [data-testid="stPlotlyChart"] .plot-container,
-  [data-testid="stPlotlyChart"] .svg-container{min-width:720px!important}
-  [data-testid="stPlotlyChart"] .barlayer text{font-size:8px!important}
+/* Fallback acionado por JavaScript quando o navegador móvel reporta viewport incorreto. */
+.iphone-mobile [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"]){display:flex!important;flex-direction:column!important;gap:18px!important}
+.iphone-mobile [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"])>[data-testid="column"]{width:100%!important;flex:1 1 100%!important;min-width:100%!important}
+.iphone-mobile [data-testid="stPlotlyChart"]{width:100%!important;overflow:visible!important}
+.iphone-mobile [data-testid="stPlotlyChart"] .barlayer text{font-size:10px!important}
+@media(max-width:650px){
+  [data-testid="stPlotlyChart"] .barlayer text{writing-mode:vertical-rl!important;text-orientation:mixed!important;}
 }
+.iphone-mobile [data-testid="stPlotlyChart"] .barlayer text{writing-mode:vertical-rl!important;text-orientation:mixed!important;}
 </style>''', unsafe_allow_html=True)
 
 def norm(s): return unicodedata.normalize('NFKD',str(s)).encode('ascii','ignore').decode().lower().strip()
@@ -96,10 +110,12 @@ def chart(title,fig):
         },
         key=f'plotly_{next(_chart_ids)}'
     )
+    # No transformação do SVG: os textos continuam encostados no topo das barras.
 def bar(df,x,y,color=RED,text=None,percent=False,money=False):
     plot=df.sort_values(y,ascending=False).copy(); order=plot[x].astype(str).tolist()
     plot['_eixo']=plot[x].map(_short)
     plot['_texto']=plot[y].map(lambda v:('R$ '+fmt(float(v)/1_000_000,2)+' MM') if money else ((fmt(v,1)+'%') if percent else fmt(v))) if text is None else plot[text]
+    plot['_texto_mobile']=plot['_texto'].map(lambda v:'<br>'.join(list(str(v))) if str(v) else '')
     fig=px.bar(plot,x='_eixo',y=y,text='_texto',color_discrete_sequence=[color],category_orders={'_eixo':[_short(v) for v in order]},custom_data=[x,'_texto'])
     fig.update_traces(textposition='outside',cliponaxis=False,textfont_size=12,hovertemplate='<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>')
     if percent: fig.update_yaxes(range=[0,118])
@@ -108,6 +124,7 @@ def groupbar(df,x,y,series,order_by_total=True,percent=False,money=False,avoid_o
     plot=df.copy(); order=plot.groupby(x)[y].sum().sort_values(ascending=False).index.astype(str).tolist() if order_by_total else plot[x].astype(str).drop_duplicates().tolist()
     plot['_eixo']=plot[x].map(_short)
     plot['_texto']=plot[y].map(lambda v:('R$ '+fmt(float(v)/1_000_000,2)+' MM') if money else ((fmt(v,1)+'%') if percent else fmt(v)))
+    plot['_texto_mobile']=plot['_texto'].map(lambda v:'<br>'.join(list(str(v))) if str(v) else '')
     cmap={'Lançamento iPhone 18':RED,'Lançamento iPhone 17':BLUE17,'Agente Autorizado':RED,'Loja Propria':WINE,'Status Expedição':RED,'Status Faturamento':WINE,'Atrasado':RED,'Prazo OK':'#FFC857'}
     fig=px.bar(plot,x='_eixo',y=y,color=series,barmode='group',text='_texto',color_discrete_map=cmap,category_orders={'_eixo':[_short(v) for v in order],series:(['Lançamento iPhone 18','Lançamento iPhone 17'] if series=='Lançamento' else plot[series].astype(str).drop_duplicates().tolist())},custom_data=[x,'_texto'])
     fig.update_traces(textposition='outside',cliponaxis=False,textfont_size=12,hovertemplate='<b>%{customdata[0]}</b><br>%{fullData.name}: %{customdata[1]}<extra></extra>')
@@ -167,6 +184,7 @@ def receipts_four_bars(df,x,y,launch_col,status_col=None,money=False):
     order=plot.groupby(x)[y].sum().sort_values(ascending=False).index.astype(str).tolist()
     plot['_eixo']=plot[x].map(_short)
     plot['_texto']=plot[y].map(lambda v:('R$ '+fmt(float(v)/1_000_000,2)+' MM') if money else fmt(v))
+    plot['_texto_mobile']=plot['_texto'].map(lambda v:'<br>'.join(list(str(v))) if str(v) else '')
     plot['_serie']=pd.Categorical(plot['_serie'],categories=series_order,ordered=True)
     plot=plot.sort_values(['_serie',x])
     fig=px.bar(
