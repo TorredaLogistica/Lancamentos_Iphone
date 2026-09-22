@@ -137,7 +137,7 @@ with tabs[0]:
         for c,(lab,fn,is_money) in zip(cs,[('Valor Total das NFs',lambda x:pd.to_numeric(x['Valor'],errors='coerce').sum(),True),('CDs atendidos',lambda x:x['CD_Corrigido'].nunique(),False)]):
             with c:
                 a=fn(d[d.Lançamento=='Lançamento iPhone 18']);b=fn(d[d.Lançamento=='Lançamento iPhone 17']);kpi(lab,(f'{mm(a)} | {mm(b)}' if is_money else f'{fmt(a)} | {fmt(b)}'));st.caption('iPhone 18 | iPhone 17')
-    else: cards([('Qtde de NFs',fmt(d['Nº da NF'].nunique())),('Qtde de Aparelhos',fmt(pd.to_numeric(d['Quantidade'],errors='coerce').sum())),('Valor Total das NFs',mm(pd.to_numeric(d['Valor'],errors='coerce').sum()))])
+    else: cards([('Qtde de NFs',fmt(d['Nº da NF'].nunique())),('Qtde de Aparelhos',fmt(pd.to_numeric(d['Quantidade'],errors='coerce').sum())),('Valor Total das NFs',mm(pd.to_numeric(d['Valor'],errors='coerce').sum())),('CDs atendidos',fmt(d['CD_Corrigido'].nunique()))])
     keys=lambda col:[col,'Lançamento'] if comp else [col]
     g=d.groupby(keys('CD_Corrigido'))['Quantidade'].sum().reset_index(name='Aparelhos')
     n=d.groupby(keys('CD_Corrigido'))['Nº da NF'].nunique().reset_index(name='NFs')
