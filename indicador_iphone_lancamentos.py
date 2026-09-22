@@ -39,13 +39,13 @@ div[role="radiogroup"]{display:grid!important;grid-template-columns:repeat(3,min
   [data-testid="stPlotlyChart"] .js-plotly-plot,
   [data-testid="stPlotlyChart"] .plot-container,
   [data-testid="stPlotlyChart"] .svg-container{min-width:760px!important;overflow:visible!important}
-  [data-testid="stPlotlyChart"] .barlayer text{font-size:9px!important;font-weight:800!important;writing-mode:vertical-rl!important;text-orientation:mixed!important}
+  [data-testid="stPlotlyChart"] .barlayer text{font-size:9px!important;font-weight:800!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;transform-box:fill-box!important;transform-origin:center bottom!important;rotate:-90deg!important}
 }
 @media(max-width:420px){
   [data-testid="stPlotlyChart"] .js-plotly-plot,
   [data-testid="stPlotlyChart"] .plot-container,
   [data-testid="stPlotlyChart"] .svg-container{min-width:720px!important}
-  [data-testid="stPlotlyChart"] .barlayer text{font-size:8px!important;font-weight:800!important;writing-mode:vertical-rl!important;text-orientation:mixed!important}
+  [data-testid="stPlotlyChart"] .barlayer text{font-size:8px!important;font-weight:800!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;transform-box:fill-box!important;transform-origin:center bottom!important;rotate:-90deg!important}
 }
 </style>''', unsafe_allow_html=True)
 
