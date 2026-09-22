@@ -101,35 +101,6 @@ def groupbar(df,x,y,series,order_by_total=True,percent=False,money=False,avoid_o
     if percent and not avoid_overlap: fig.update_yaxes(range=[0,118])
     fig.update_layout(margin=dict(l=55 if avoid_overlap else 45,r=55 if avoid_overlap else 45,t=145 if avoid_overlap else 125,b=130 if avoid_overlap else 125),legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)))
     return style(fig,520 if avoid_overlap else 455,True,plot['_eixo'].nunique())
-def stacked_receipts(df,x,y,series,money=False):
-    """Comparativo empilhado: iPhone 18 na base e iPhone 17 no topo."""
-    plot=df.copy()
-    order=plot.groupby(x)[y].sum().sort_values(ascending=False).index.astype(str).tolist()
-    plot['_eixo']=plot[x].map(_short)
-    plot['_texto']=plot[y].map(lambda v:('R$ '+fmt(float(v)/1_000_000,2)+' MM') if money else fmt(v))
-    launches=['Lançamento iPhone 18','Lançamento iPhone 17']
-    plot[series]=pd.Categorical(plot[series],categories=launches,ordered=True)
-    plot=plot.sort_values([series,x])
-    fig=px.bar(
-        plot,x='_eixo',y=y,color=series,barmode='stack',text='_texto',
-        color_discrete_map={'Lançamento iPhone 18':RED,'Lançamento iPhone 17':BLUE17},
-        category_orders={'_eixo':[_short(v) for v in order],series:launches},
-        custom_data=[x,'_texto']
-    )
-    fig.update_traces(
-        textposition='inside',textangle=0,cliponaxis=False,
-        textfont=dict(size=10,color='white'),insidetextanchor='middle',
-        hovertemplate='<b>%{customdata[0]}</b><br>%{fullData.name}: %{customdata[1]}<extra></extra>'
-    )
-    fig.update_layout(
-        bargap=.34,margin=dict(l=45,r=45,t=125,b=125),
-        legend=dict(orientation='h',y=1.18,x=0,traceorder='normal',font=dict(size=13)),
-        uniformtext_minsize=9,uniformtext_mode='show'
-    )
-    ymax=pd.to_numeric(plot[y],errors='coerce').groupby(plot['_eixo']).sum().max()
-    if pd.notna(ymax) and ymax>0:
-        fig.update_yaxes(range=[0,float(ymax)*1.10])
-    return style(fig,500,True,plot['_eixo'].nunique())
 @st.cache_data(show_spinner=False)
 def load_book(path, launch):
     b=pd.ExcelFile(path,engine='openpyxl'); out={s:pd.read_excel(b,sheet_name=s) for s in b.sheet_names}
@@ -199,8 +170,8 @@ with tabs[0]:
     with a:chart('Qtde de Aparelhos',groupbar(g,'CD_Corrigido','Aparelhos','Lançamento') if comp else bar(g,'CD_Corrigido','Aparelhos'))
     with b:chart('Qtde de NFs',groupbar(n,'CD_Corrigido','NFs','Lançamento') if comp else bar(n,'CD_Corrigido','NFs'))
     a,b=st.columns(2)
-    with a:chart('Valor Total das NFs',stacked_receipts(v,'CD_Corrigido','Valor','Lançamento',money=True) if comp else bar(v,'CD_Corrigido','Valor',money=True))
-    with b:chart('Execução dos Horários dos Agendamentos',stacked_receipts(stat,'CD_Corrigido','Aparelhos','Serie') if comp else groupbar(stat,'CD_Corrigido','Aparelhos','Serie'))
+    with a:chart('Valor Total das NFs',groupbar(v,'CD_Corrigido','Valor','Lançamento',money=True,avoid_overlap=True) if comp else bar(v,'CD_Corrigido','Valor',money=True))
+    with b:chart('Execução dos Horários dos Agendamentos',groupbar(stat,'CD_Corrigido','Aparelhos','Serie',avoid_overlap=comp))
 with tabs[1]:
     d=get('Consulta Massiva');hero(title_text('Faturamento e Expedição'))
     funcs=[('Qtde de NFs',lambda x:x['N° NF'].notna().sum()),('SLA D+0',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(0).sum()),('SLA D+1',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(1).sum()),('SLA D+2',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(2).sum()),('SLA D+3',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').eq(3).sum()),('Não finalizado',lambda x:pd.to_numeric(x['Dias Fat + Exp'],errors='coerce').isna().sum())]
